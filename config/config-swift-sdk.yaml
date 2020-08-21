@@ -6,7 +6,7 @@ configuration:
       # Replace it with https://api-test.swiftnet.sipn.swift.com when using pilot environment
       host: "https://sandbox.swift.com"
       # API Gateway Public certificate Trust Alias for establishing 1-way SSL with API gateway
-      trust_alias: "new_root_ca_06082020_1"
+      trust_alias: "sandbox_pub"
       # Consumer Key generated in Swift Developer portal while registering the Application
       consumer_key: "<consumer-key>"
       # Consumer Secret generated in Swift Developer portal while registering the Application
