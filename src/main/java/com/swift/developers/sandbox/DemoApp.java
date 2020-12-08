@@ -4,12 +4,13 @@ package com.swift.developers.sandbox;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import com.google.gson.internal.$Gson$Preconditions;
+import com.swift.commons.context.Context;
+import com.swift.commons.context.KeyStoreContext;
 import com.swift.commons.exceptions.SignatureContextException;
+import com.swift.commons.token.ChannelToken;
+import com.swift.commons.token.Token;
 import com.swift.developers.sandbox.exception.ApiSessionException;
 import com.swift.developers.sandbox.session.impl.SandboxApiSession;
 
@@ -26,7 +27,10 @@ import com.swift.sdk.oas.gpi.tracker.v4.api.StatusConfirmationsApi;
 import com.swift.sdk.oas.gpi.tracker.v4.api.TransactionCancellationStatusApi;
 
 import com.swift.sdk.oas.gpi.tracker.v4.model.*;
+import com.swift.sdk.gpitracker.v4.util.GpiTrackerUtil;
 
+import com.swift.sdk.util.ConnectionInfo;
+import com.swift.sdk.util.GPIUtil;
 import org.apache.commons.lang.StringUtils;
 import org.jose4j.json.internal.json_simple.JSONObject;
 import org.junit.Test;
@@ -35,7 +39,13 @@ import org.threeten.bp.OffsetDateTime;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
+
+import static com.swift.sdk.util.Constants.ENC_CONFIG_FILEPATH;
+import static com.swift.sdk.util.Constants.ENC_SECRETS_FILEPATH;
+import static com.swift.sdk.util.GPIConstants.CANCEL_TRANSACTION_SERVICE_V4;
 
 
 public class DemoApp {
@@ -187,7 +197,6 @@ public class DemoApp {
             CancelTransactionApi cgdapi = new CancelTransactionApi();
 
             String uetr = "97ed4827-7b6f-4491-a06f-b548d5a7512d";
-            String xSWIFTSignature = "Signature";
 
             body.setFrom("BANABEBBXXX");
             body.setBusinessService(BusinessService2Code._002);
@@ -195,6 +204,14 @@ public class DemoApp {
             body.setOriginalInstructionIdentification("XYZ");
             body.setCancellationReasonInformation(CancellationReason8Code.DUPL);
             body.setIndemnityAgreement(PendingPaymentCancellationReason2Code.INDM);
+
+            Map<String, Object> claimsMap = new HashMap<>();
+            ConnectionInfo conInfo = GpiTrackerUtil.createConnectionInfo(sess.getConfigJson());
+            claimsMap.put("audience", GpiTrackerUtil.buildAbsServicePath(conInfo, sess.getConfigJson(), CANCEL_TRANSACTION_SERVICE_V4, uetr));
+            claimsMap.put("payload", body);
+            Token token = new ChannelToken();
+            Context context = new KeyStoreContext(conInfo.getCertPath(), conInfo.getCertPassword(), conInfo.getCertAlias());
+            String xSWIFTSignature = token.createNRSignature(context, claimsMap);
 
             cgdapi.setApiClient((ApiClient) sess.prepareApiClient(cgdapi.getApiClient()));
             cgdapi.cancelTransaction(body, xSWIFTSignature, uetr);
@@ -204,7 +221,7 @@ public class DemoApp {
             String jsonOutput = gson.toJson(body);
             String response = "\n200 OK";
 
-            System.out.println("\nREQUEST" + url + "\nBody:\n" + jsonOutput + "\n" + "\nRESPONSE" + response);
+            System.out.println("\nREQUEST" + url + "\nHeader Parameters:\n" + "X-SWIFT-Signature: " + xSWIFTSignature + "\n" + "\nBody:\n" + jsonOutput + "\n" + "\nRESPONSE" + response);
 
         } catch (ApiException ex) {
             System.out.println("ERROR - " + ex.getMessage());
@@ -220,7 +237,6 @@ public class DemoApp {
             TransactionCancellationStatusApi cgdapi = new TransactionCancellationStatusApi();
 
             String uetr = "97ed4827-7b6f-4491-a06f-b548d5a7512d";
-            String xSWIFTSignature = "Signature";
 
             body.setFrom("BANBUS33XXX");
             body.setBusinessService(BusinessService2Code._002);
@@ -229,15 +245,25 @@ public class DemoApp {
             body.setInvestigationExecutionStatus(InvestigationExecutionConfirmation5Code.CNCL);
             body.setOriginator("BANUS33XX");
 
+            Map<String, Object> claimsMap = new HashMap<>();
+            ConnectionInfo conInfo = GpiTrackerUtil.createConnectionInfo(sess.getConfigJson());
+            claimsMap.put("audience", GpiTrackerUtil.buildAbsServicePath(conInfo, sess.getConfigJson(), CANCEL_TRANSACTION_SERVICE_V4, uetr));
+            claimsMap.put("payload", body);
+            Token token = new ChannelToken();
+            Context context = new KeyStoreContext(conInfo.getCertPath(), conInfo.getCertPassword(), conInfo.getCertAlias());
+            String xSWIFTSignature = token.createNRSignature(context, claimsMap);
+
             cgdapi.setApiClient((ApiClient) sess.prepareApiClient(cgdapi.getApiClient()));
             cgdapi.transactionCancellationStatus(body, xSWIFTSignature, uetr);
+
+
 
             String url = "\nURL: https://sandbox.swift.com/swift-apitracker/v4/payments/" + uetr + "/cancellation/status\n";
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
             String jsonOutput = gson.toJson(body);
             String response = "\n200 OK";
 
-            System.out.println("\nREQUEST" + url + "\nBody:\n" + jsonOutput + "\n" + "\nRESPONSE" + response);
+            System.out.println("\nREQUEST" + url + "\nHeader Parameters:\n" + "X-SWIFT-Signature: " + xSWIFTSignature + "\n" + "\nBody:\n" + jsonOutput + "\n" + "\nRESPONSE" + response);
 
         } catch (ApiException ex) {
             System.out.println("\nERROR - " + ex.getMessage());
