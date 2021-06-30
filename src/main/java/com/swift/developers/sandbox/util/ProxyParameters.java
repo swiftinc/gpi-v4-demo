@@ -52,6 +52,10 @@ public class ProxyParameters {
         this.user = user;
         this.password = password;
     }
+    
+    public ProxyParameters() {
+    	;
+    }
 
     @Override
     public boolean equals(Object o) {

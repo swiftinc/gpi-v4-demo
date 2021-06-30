@@ -30,6 +30,8 @@ import static com.swift.developers.sandbox.util.Constants.*;
 
 public class Util {
 
+	public enum CertType { SOFT, 
+							HARD };
     private static final Logger LOG = LoggerFactory.getLogger(Util.class);
     private static final String PEM_CERTIFICATE_PREFIX = "-----BEGIN CERTIFICATE-----";
     private static final String PEM_CERTIFICATE_POSTFIX = "-----END CERTIFICATE-----";
@@ -113,8 +115,35 @@ public class Util {
         			connInfo.setTrustAliasConnector(returnConfigValue(gpiConnectorObject, Constants.GPI_CONNECTOR_TRUST_ALIAS));
                     connInfo.setConnectorHost(returnConfigValue(gpiConnectorObject, Constants.CONNECTOR_HOST));
         		}
-        	}
+        		
+        		JsonObject microgatewayObject = returnConfigObject(hostsObject, Constants.YAML_CONFIGURATION_MGW);
 
+                if(microgatewayObject != null) {
+                connInfo.setMicrogatewayHost(returnConfigValue(microgatewayObject,Constants.GATEWAY_HOST));
+                        connInfo.setMgwService(returnConfigValue(microgatewayObject, Constants.MGW_SERVICE));
+                        connInfo.setTrustAliasMgw(returnConfigValue(microgatewayObject, Constants.GATEWAY_TRUST_ALIAS));
+                }
+        		
+        		List<ProxyParameters> proxyParametersList = new ArrayList<>();
+    			JsonArray forwardProxyArray = returnConfigArray(hostsObject, "forward_proxies");
+
+    			if (forwardProxyArray != null) {
+    				for (JsonElement forwardProxyElement : forwardProxyArray) {
+    					JsonObject proxyObj = forwardProxyElement.getAsJsonObject();
+    					
+    					if (proxyObj != null) {
+    						ProxyParameters proxyParameters = new ProxyParameters();
+    						proxyParameters.setHost(returnConfigValue(proxyObj, Constants.SNL_HOSTNAME));
+    						proxyParameters.setPort(returnConfigValue(proxyObj, Constants.SNL_PORT));
+    						proxyParameters.setUser(returnConfigValue(proxyObj, Constants.BASIC_USERNAME, false));
+    						proxyParameters.setPassword(returnConfigValue(proxyObj, Constants.BASIC_PASSWORD, false));
+    						proxyParametersList.add(proxyParameters);
+    					}
+    				}
+    				connInfo.setProxyList(proxyParametersList);
+    			}
+        	}      	
+			
 			JsonObject securityFootprintsObject = returnConfigObject(configurationObject,
 					Constants.YAML_CONFIGURATION_SECURITY_FOOTPRINT);
 			if (securityFootprintsObject != null) {
@@ -174,29 +203,35 @@ public class Util {
 					}
 					connInfo.setLauInfo(lauInfoList);
 				}
+
+				List<MGWConnectionInfo> mgwConnectionInfoList = new ArrayList<>();
+				JsonArray mgwArray = returnConfigArray(securityFootprintsObject, "mgwjws");
+
+				if (mgwArray != null) {
+
+					for (JsonElement mgwElement : mgwArray) {
+						JsonObject mgwObj = mgwElement.getAsJsonObject();
+
+						if ((mgwObj != null) && (commonObject != null)) {
+							MGWConnectionInfo mgwConnectionInfo = new MGWConnectionInfo();
+							mgwConnectionInfo
+									.setMgwApplicationName(returnConfigValue(mgwObj, Constants.MGW_APPLICATION_NAME));
+
+							mgwConnectionInfo.setMgwProfileId(returnConfigValue(mgwObj, Constants.MGW_PROFILE_ID));
+							mgwConnectionInfo
+									.setMgwSharedSecret(returnConfigValue(mgwObj, Constants.MGW_SHARED_SECRET));
+							mgwConnectionInfoList.add(mgwConnectionInfo);
+						}
+					}
+					connInfo.setMgwConnectionInfo(mgwConnectionInfoList);
+				}
+				
 				JsonObject basicObject = returnConfigObject(securityFootprintsObject,
 						Constants.YAML_CONFIGURATION_BASIC);
 				if (basicObject != null) {
 					connInfo.setUsername(returnConfigValue(basicObject, Constants.BASIC_USERNAME));
 					connInfo.setPassword(returnConfigValue(basicObject, Constants.BASIC_PASSWORD));
 				}
-			}
-
-			/* Read parameters custom to the test framework. */
-			JsonObject customFrameworkObject = returnConfigObject(configurationObject, Constants.YAML_CUSTOM_FRAMEWORK);
-			connInfo.setProviderService(returnConfigValue(customFrameworkObject, GATEWAY_PROVIDER_SERVICE));
-			try {
-				connInfo.setCertSelector(returnConfigValue(customFrameworkObject, CERT_SELECTOR));
-			} catch (InvalidParameterException ex) {
-				/* Defaults to channel if the parameter is not defined. */
-				connInfo.setCertSelector(Constants.CHANNEL);
-			}
-			try {
-				String tmpStr = returnConfigValue(customFrameworkObject, HSM_SLOT);
-				connInfo.setHsmSlot(Integer.parseInt(tmpStr));
-			} catch (InvalidParameterException | NumberFormatException ex) {
-				/* Defaults to slot 0. */
-				connInfo.setHsmSlot(0);
 			}
 		}
 
@@ -251,7 +286,7 @@ public class Util {
             lauInfo.setLauSigned("(ApplAPIKey=" + lauApplApiKey + "),(RBACRole=[" + lauRbacRole + "])");
 
             // connInfo.setLauInfo(lauInfo);
-            
+            /*
             connInfo.setProviderService(returnConfigValue(connectionObject, GATEWAY_PROVIDER_SERVICE));
             connInfo.setCertSelector(returnConfigValue(connectionObject, CERT_SELECTOR));
             
@@ -260,10 +295,10 @@ public class Util {
             	slotnum = Integer.parseInt(returnConfigValue(connectionObject, HSM_SLOT));
             }
             catch (NumberFormatException ex) {
-            	/* Defaults to slot 0. */
             	slotnum = 0;
             }
             connInfo.setHsmSlot(slotnum);
+            */
         }
 
         return connInfo;
@@ -285,6 +320,25 @@ public class Util {
             value = valueJson.getAsString().isEmpty() ? null : valueJson.getAsString();
         } else {
             throw new InvalidParameterException(property + " property expected and is not provided in config file.");
+        }
+
+        return value;
+    }
+    
+    public static String returnConfigValue(JsonObject parentJsonObject, String property, 
+    											boolean required) {
+        String value;
+
+        JsonElement valueJson = parentJsonObject.get(property);
+        if (valueJson != null) {
+            value = valueJson.getAsString().isEmpty() ? null : valueJson.getAsString();
+        } else {
+        	if (required) {
+        		throw new InvalidParameterException(property + 
+        				" property expected and is not provided in config file.");
+        	} else {
+        		value = null;
+        	}           
         }
 
         return value;
@@ -365,9 +419,24 @@ public class Util {
 		return jsonObject;
     }
     
+	/*
     public static String getBasePath(JsonObject configJson, String host, String service) {
         return returnConnectionConfigValue(configJson, host) + returnConnectionConfigValue(configJson, service);
     }
+    */
+    
+	public static String getBasePath(JsonObject configJson, String host, String service) {
+		JsonObject configurationObject = returnConfigObject(configJson, Constants.YAML_CONFIGURATION);
+		JsonObject hostsObject = returnConfigObject(configurationObject, Constants.YAML_CONFIGURATION_HOSTS);
+		JsonObject apiGatewayObject = returnConfigObject(hostsObject, Constants.YAML_CONFIGURATION_API_GATEWAY);
+		JsonObject servicesObject = returnConfigObject(configurationObject, Constants.YAML_CONFIGURATION_SERVICES);
+
+		if (!host.isEmpty()) {
+			return returnConfigValue(apiGatewayObject, host) + returnConfigValue(servicesObject, service);
+		} else {
+			return returnConfigValue(servicesObject, service);
+		}
+	}
     
     public static String getStackTrace(Throwable ex) {
 		return ExceptionUtils.getStackTrace(ex);
