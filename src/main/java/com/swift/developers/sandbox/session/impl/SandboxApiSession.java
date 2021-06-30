@@ -5,8 +5,10 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.squareup.okhttp.Authenticator;
 import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.ConnectionSpec;
 import com.swift.developers.sandbox.exception.ApiSessionException;
 import com.swift.developers.sandbox.util.ConnectionInfo;
+import com.swift.developers.sandbox.util.Constants;
 import com.swift.developers.sandbox.util.ProxyAuthenticatorUtil;
 import com.swift.developers.sandbox.util.ProxyParameters;
 import com.swift.developers.sandbox.util.Util;
@@ -14,7 +16,6 @@ import com.swift.commons.exceptions.SignatureContextException;
 import com.swift.commons.oauth.exceptions.OAuthConnectionException;
 import com.swift.commons.oauth.token.OAuthTokenHolder;
 import com.swift.commons.utils.KeyStoreUtils;
-import com.swift.developers.sandbox.util.ConnectionInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.threeten.bp.LocalDate;
@@ -29,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -43,9 +45,9 @@ public class SandboxApiSession {
 	private ProxyParameters[] proxyParameters = null;
 	private final static Logger LOG = LoggerFactory.getLogger(SandboxApiSession.class);
 	
-	public SandboxApiSession(String configFile) throws ApiSessionException {
+	public SandboxApiSession(String configFile, Util.CertType type) throws ApiSessionException {
 		
-		this.setUp(configFile, null, null);		
+		this.setUp(configFile, type, null, null);		
 	}
 	
 	/**
@@ -55,12 +57,12 @@ public class SandboxApiSession {
 	 * @param scope			- Override Scope in the configuration file.
 	 * @throws ApiSessionException
 	 */
-	public SandboxApiSession(String configFile, String service, String scope) throws ApiSessionException {
+	public SandboxApiSession(String configFile, Util.CertType type, String service, String scope) throws ApiSessionException {
         
-        this.setUp(configFile, service, scope);			
+        this.setUp(configFile, type, service, scope);			
 	}
 	
-    public Object prepareApiClient(Object client) throws SignatureContextException, ApiSessionException {
+    public Object prepareApiClient(Object client, String basepath) throws SignatureContextException, ApiSessionException {
 		
 		try {
 			LOG.info("Preparing API Client with Access Token and SSL Cert");
@@ -70,8 +72,9 @@ public class SandboxApiSession {
 			
 			/* Setting base path. */
 			tmpmethod = client.getClass().getMethod("setBasePath", String.class);			
-			tmpmethod.invoke(client, connInfo.getGatewayHost() + connInfo.getProviderService());
-			
+			// tmpmethod.invoke(client, connInfo.getGatewayHost() + connInfo.getProviderService());
+			tmpmethod.invoke(client, basepath);
+					
 			/* Setting SSL. */
 			KeyStore keystore = KeyStoreUtils.loadKeyStore(connInfo.getCertPath(), connInfo.getCertPassword());
 			Certificate trustCertificate = Util.extractCertificate(connInfo.getTrustAliasGateway(), keystore);
@@ -86,6 +89,8 @@ public class SandboxApiSession {
 			/* Setting HTTP Client. */
 			tmpmethod = client.getClass().getMethod("getHttpClient");			
 			OkHttpClient httpClient = (OkHttpClient) tmpmethod.invoke(client);
+			httpClient.setConnectionSpecs(
+					Collections.singletonList(new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS).allEnabledCipherSuites().build()));
 			
 			if ((proxyParameters != null) && (proxyParameters.length != 0)) {
 				httpClient.setProxySelector(new HttpProxySelector());
@@ -134,16 +139,6 @@ public class SandboxApiSession {
 		}
 	}
     
-    public String getNRAudience(String endPoint) {
-    	String domain = connInfo.getGatewayHost().substring(
-    						connInfo.getGatewayHost().indexOf("https://") + "https://".length());
-    	if (domain.contains(":")) {
-            domain = domain.substring(0, domain.indexOf(":"));
-        }
-    	
-    	return (domain + connInfo.getProviderService() + endPoint);
-    }
-    
     /*
      * Timeout in milliseconds.
      */
@@ -181,7 +176,7 @@ public class SandboxApiSession {
 		}					
 	}
 	
-	private void setUp(String configFile, String service, String scope) throws ApiSessionException {
+	private void setUp(String configFile, Util.CertType type, String service, String scope) throws ApiSessionException {
 		try {
 			this.setConfigFile(configFile);
 			
@@ -196,14 +191,22 @@ public class SandboxApiSession {
 			connInfo = Util.createConnectionInfo(configJson);
 	        
 	        /* Override Provider Service & Scope. */
+			/*
 	        if (service != null) {
 	        	connInfo.setProviderService(service);
 	        }
+	        */
 	        if (scope != null) {
 	        	connInfo.setScope(scope);
 	        }
 	        
-	        sessionImpl = new SessionImpl(connInfo, proxyParameters);
+	        if (connInfo.getProxyList() != null) {
+	        	/* Forward proxies are defined. */
+	        	proxyParameters = new ProxyParameters[connInfo.getProxyList().size()];
+		        proxyParameters = connInfo.getProxyList().toArray(proxyParameters);
+	        }
+	        
+	        sessionImpl = new SessionImpl(connInfo, proxyParameters, type);
 	        this.setOauthTokenHolder(sessionImpl.getAccessTokenHolder());
 		}
 		catch (Exception ex)
@@ -214,6 +217,10 @@ public class SandboxApiSession {
         		new ApiSessionException(ex.getMessage(), ex);
         	throw locex;
         }
+	}
+	
+	public String getBasePath(String host, String service) {
+		return Util.getBasePath(configJson, host, service);
 	}
 	
 	class HttpProxySelector extends ProxySelector {
@@ -231,7 +238,7 @@ public class SandboxApiSession {
 					InetSocketAddress proxyInet = new InetSocketAddress(proxyHost, Integer.parseInt(proxyPort));
 					Proxy proxy = new Proxy(Proxy.Type.HTTP, proxyInet);
 					proxies.add(proxy);
-					// LOG.trace("Proxy {}:{} added.", proxyHost, proxyPort);
+					LOG.info("Proxy {}:{} added.", proxyHost, proxyPort);
 				}
 			}
 			return proxies;

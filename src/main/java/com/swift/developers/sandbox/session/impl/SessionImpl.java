@@ -47,12 +47,15 @@ public class SessionImpl {
     private OAuthCredentials oAuthCredentials = null;
     private OAuthSessionImpl oauthToken = null;
     private ConnectionInfo connInfo = null;
+    private Util.CertType certType;
 
-    public SessionImpl(ConnectionInfo info, ProxyParameters[] proxy) throws OAuthValidationException,
+    public SessionImpl(ConnectionInfo info, ProxyParameters[] proxy, Util.CertType type) throws OAuthValidationException,
             ApiSessionException, SignatureContextException
     {
         connInfo = info;
         proxyParameters = proxy;
+        /* Certificate type - HSM or Channel. */
+        certType = type;
         oAuthCredentials = new OAuthCredentials(connInfo.getCertPath(), connInfo.getCertPassword(),
                 connInfo.getCertPassword(), connInfo.getCertAlias(), connInfo.getTrustAliasGateway(), connInfo.getGatewayHost(),
                 connInfo.getClientID(), connInfo.getClientSecret());
@@ -66,7 +69,7 @@ public class SessionImpl {
             throws OAuthValidationException, OAuthConnectionException, OAuthFailResponseException, OAuthSessionException,
             ApiSessionException, SignatureContextException, SignatureGenerationException {
 
-        if (connInfo.getCertSelector().equalsIgnoreCase("hsm")) {
+    	if (certType == Util.CertType.HARD) {
             return getAccessTokenHolderHSM();
         }
         else {
@@ -79,8 +82,9 @@ public class SessionImpl {
             ApiSessionException, SignatureContextException, SignatureGenerationException {
 
         /* Update fail over logic for SAG slots if needed. */
-        LOG.info("Trying to connect to the SAG at {} slot.", connInfo.getHsmSlot());
-        SNLConnectionInfo snlConInfo = connInfo.getSnlConnectionInfo().get(connInfo.getHsmSlot());
+    	/* Uses first slot (slot 0) by default for now. */
+        LOG.info("Trying to connect to the SAG at {} slot.", 0);
+        SNLConnectionInfo snlConInfo = connInfo.getSnlConnectionInfo().get(0);
         PhysicalCertificateHolder sslHolder = new PhysicalCertificateHolder(snlConInfo.getTrustStoragePath(),
                 snlConInfo.getTrustStoragePass(), snlConInfo.getTrustStorageAlias());
 
@@ -91,7 +95,7 @@ public class SessionImpl {
             oauthToken.init(oAuthCredentials, signHolder, OAuthTokenUnsecuredJWTBearer.class);
         } catch (SignatureContextException ex) {
             LOG.error("Failed to initialize oauth context  using {} SAG. "
-                    + "Try to change SAG connection slot and rerun.", connInfo.getHsmSlot());
+                    + "Try to change SAG connection slot and rerun.", 0);
             throw ex;
         }
 
@@ -102,7 +106,7 @@ public class SessionImpl {
         try {
             oauthTokenInfo = oauthToken.getToken(connInfo.getScope(), connInfo.getAudience());
         } catch (SignatureGenerationException | SignatureContextException ex) {
-            LOG.error("Failed to get oauth token using SAG at {} slot. Try to change SAG connection slot and re-run.", connInfo.getHsmSlot());
+            LOG.error("Failed to get oauth token using SAG at {} slot. Try to change SAG connection slot and re-run.", 0);
             throw ex;
         }
         LOG.debug("Received OAuth token: {}", oauthTokenInfo);
@@ -153,8 +157,8 @@ public class SessionImpl {
             NRSignatureException {
 
         /* Update fail over logic for NR SAG slots here if needed. */
-        LOG.info("Try to connect to the SAG at {} slot.", connInfo.getHsmSlot());
-        SNLConnectionInfo snlHolder = connInfo.getSnlConnectionInfo().get(connInfo.getHsmSlot());
+        LOG.info("Try to connect to the SAG at {} slot.", 0);
+        SNLConnectionInfo snlHolder = connInfo.getSnlConnectionInfo().get(0);
         HSMContext context = new HSMContext(snlHolder.getUserDN(), snlHolder.getTrustStoragePath(),
                 snlHolder.getTrustStoragePass(), snlHolder.getTrustStorageAlias(), snlHolder.getSslDN(),
                 snlHolder.getHostname(), new Integer(snlHolder.getPort()), snlHolder.getMessagePartner(),
@@ -170,7 +174,7 @@ public class SessionImpl {
             return signatureNR;
         } catch (SignatureContextException | NRSignatureException ex) {
             LOG.error("Failed to sign NR request using SAG at {} slot. "
-                    + "Try to change SAG connection slot and re-run.", connInfo.getHsmSlot());
+                    + "Try to change SAG connection slot and re-run.", 0);
             throw ex;
         }
     }
@@ -254,12 +258,13 @@ public class SessionImpl {
             List<Proxy> proxies = new ArrayList<>();
             for (ProxyParameters proxyParameter : proxyParameters) {
                 String proxyHost = proxyParameter.getHost();
-                String proxyPort = proxyParameter.getPort();
+                String proxyPort = proxyParameter.getPort();              
 
                 if (!Util.isNullOrEmpty(proxyHost)) {
                     InetSocketAddress proxyInet = new InetSocketAddress(proxyHost, Integer.parseInt(proxyPort));
                     Proxy proxy = new Proxy(Proxy.Type.HTTP, proxyInet);
                     proxies.add(proxy);
+                    LOG.info("Proxy {}:{} added.", proxyHost, proxyPort);
                 }
             }
             return proxies;
@@ -274,6 +279,4 @@ public class SessionImpl {
             }
         }
     }
-
-
 }

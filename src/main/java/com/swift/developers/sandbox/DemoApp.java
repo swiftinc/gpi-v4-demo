@@ -13,8 +13,8 @@ import com.swift.commons.token.ChannelToken;
 import com.swift.commons.token.Token;
 import com.swift.developers.sandbox.exception.ApiSessionException;
 import com.swift.developers.sandbox.session.impl.SandboxApiSession;
-
-
+import com.swift.developers.sandbox.util.Constants;
+import com.swift.developers.sandbox.util.Util;
 import com.swift.sdk.oas.gpi.tracker.v3.model.CancelTransactionRequest;
 import com.swift.sdk.oas.gpi.tracker.v3.model.TransactionCancellationStatusRequest;
 import com.swift.sdk.oas.gpi.tracker.v4.ApiClient;
@@ -57,11 +57,11 @@ public class DemoApp {
             System.out.println("Using the configuration file - " + args[0] + " to setup the session.");
         }
         try {
-            SandboxApiSession sess = new SandboxApiSession(args[0]);
+            SandboxApiSession sess = new SandboxApiSession(args[0], Util.CertType.SOFT);
             System.out.println("\nSession is established successfully.");
             System.out.println("Access Token - " + sess.getAccessToken());
             System.out.println("Access Token Expiry - " + sess.getTokenExpiry());
-            System.out.println("Refresh Token - " + sess.refreshToken());
+            System.out.println("Refresh Token - " + sess.getRefreshToken());
             System.out.println("Refresh Token Expiry - " + sess.getRefreshExpiry() + "\n");
 
             String number = "";
@@ -96,6 +96,7 @@ public class DemoApp {
 
         } catch (ApiSessionException ex) {
             // TODO Auto-generated catch block
+        	System.out.println(ex.getMessage());
             ex.printStackTrace();
         }
     }
@@ -119,7 +120,8 @@ public class DemoApp {
             body.setConfirmedAmount(restrictedFINActiveOrHistoricCurrencyAndAmount.currency("EUR"));
             body.setConfirmedAmount(restrictedFINActiveOrHistoricCurrencyAndAmount.amount("970"));
 
-            cgdapi.setApiClient((ApiClient) sess.prepareApiClient(cgdapi.getApiClient()));
+            String basepath = sess.getBasePath(Constants.GATEWAY_HOST, Constants.TRACKER_SERVICE_V4);
+            cgdapi.setApiClient((ApiClient) sess.prepareApiClient(cgdapi.getApiClient(), basepath));
             cgdapi.statusConfirmations(body, uetr);
 
             String url = "\nURL: https://sandbox.swift.com/swift-apitracker/v4/payments/" + uetr + "/status\n";
@@ -131,8 +133,10 @@ public class DemoApp {
 
         } catch (ApiException ex) {
             System.out.println("\nERROR - " + ex.getMessage());
-            System.out.println(ex.getResponseBody());
+            ex.printStackTrace();
+            System.out.println(ex.getResponseBody());           
         } catch (Exception ex) {
+        	System.out.println("ERROR - " + ex.getMessage());
             ex.printStackTrace();
         }
     }
@@ -144,7 +148,8 @@ public class DemoApp {
             GetPaymentTransactionDetailsApi cgdapi = new GetPaymentTransactionDetailsApi();
 
             String uetr = "97ed4827-7b6f-4491-a06f-b548d5a7512d";
-            cgdapi.setApiClient((ApiClient) sess.prepareApiClient(cgdapi.getApiClient()));
+            String basepath = sess.getBasePath(Constants.GATEWAY_HOST, Constants.TRACKER_SERVICE_V4);
+            cgdapi.setApiClient((ApiClient) sess.prepareApiClient(cgdapi.getApiClient(), basepath));
             response = cgdapi.getPaymentTransactionDetails(uetr);
 
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -156,8 +161,10 @@ public class DemoApp {
 
         } catch (ApiException ex) {
             System.out.println("ERROR - " + ex.getMessage());
-            System.out.println(ex.getResponseBody());
+            ex.printStackTrace();
+            System.out.println(ex.getResponseBody());            
         } catch (Exception ex) {
+        	System.out.println("ERROR - " + ex.getMessage());
             ex.printStackTrace();
         }
     }
@@ -172,7 +179,8 @@ public class DemoApp {
             int maxNumber = Integer.parseInt("10");
             String paymentScenario = "CCTR";
             String next = null;
-            cgdapi.setApiClient((ApiClient) sess.prepareApiClient(cgdapi.getApiClient()));
+            String basepath = sess.getBasePath(Constants.GATEWAY_HOST, Constants.TRACKER_SERVICE_V4);
+            cgdapi.setApiClient((ApiClient) sess.prepareApiClient(cgdapi.getApiClient(), basepath));
             response = cgdapi.getChangedPaymentTransactions(fromDateTime, toDateTime, maxNumber, paymentScenario, next);
 
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -184,11 +192,12 @@ public class DemoApp {
 
         } catch (ApiException ex) {
             System.out.println("ERROR - " + ex.getMessage());
-            System.out.println(ex.getResponseBody());
+            ex.printStackTrace();
+            System.out.println(ex.getResponseBody());            
         } catch (Exception ex) {
+        	System.out.println("ERROR - " + ex.getMessage());
             ex.printStackTrace();
         }
-
     }
 
     public static void CancelTransaction(SandboxApiSession sess) {
@@ -210,10 +219,12 @@ public class DemoApp {
             claimsMap.put("audience", GpiTrackerUtil.buildAbsServicePath(conInfo, sess.getConfigJson(), CANCEL_TRANSACTION_SERVICE_V4, uetr));
             claimsMap.put("payload", body);
             Token token = new ChannelToken();
-            Context context = new KeyStoreContext(conInfo.getCertPath(), conInfo.getCertPassword(), conInfo.getCertAlias());
+            Context context = new KeyStoreContext(conInfo.getCertPath(), conInfo.getCertPassword(), 
+            											conInfo.getCertPassword(), conInfo.getCertAlias());           
             String xSWIFTSignature = token.createNRSignature(context, claimsMap);
 
-            cgdapi.setApiClient((ApiClient) sess.prepareApiClient(cgdapi.getApiClient()));
+            String basepath = sess.getBasePath(Constants.GATEWAY_HOST, Constants.TRACKER_SERVICE_V4);
+            cgdapi.setApiClient((ApiClient) sess.prepareApiClient(cgdapi.getApiClient(), basepath));
             cgdapi.cancelTransaction(body, xSWIFTSignature, uetr);
 
             String url = "\nURL: https://sandbox.swift.com/swift-apitracker/v4/payments/" + uetr + "/cancellation\n";
@@ -225,8 +236,10 @@ public class DemoApp {
 
         } catch (ApiException ex) {
             System.out.println("ERROR - " + ex.getMessage());
-            System.out.println(ex.getResponseBody());
+            ex.printStackTrace();
+            System.out.println(ex.getResponseBody());           
         } catch (Exception ex) {
+        	System.out.println("ERROR - " + ex.getMessage());
             ex.printStackTrace();
         }
     }
@@ -250,13 +263,13 @@ public class DemoApp {
             claimsMap.put("audience", GpiTrackerUtil.buildAbsServicePath(conInfo, sess.getConfigJson(), CANCEL_TRANSACTION_SERVICE_V4, uetr));
             claimsMap.put("payload", body);
             Token token = new ChannelToken();
-            Context context = new KeyStoreContext(conInfo.getCertPath(), conInfo.getCertPassword(), conInfo.getCertAlias());
+            Context context = new KeyStoreContext(conInfo.getCertPath(), conInfo.getCertPassword(), 
+            											conInfo.getCertPassword(), conInfo.getCertAlias());
             String xSWIFTSignature = token.createNRSignature(context, claimsMap);
 
-            cgdapi.setApiClient((ApiClient) sess.prepareApiClient(cgdapi.getApiClient()));
+            String basepath = sess.getBasePath(Constants.GATEWAY_HOST, Constants.TRACKER_SERVICE_V4);
+            cgdapi.setApiClient((ApiClient) sess.prepareApiClient(cgdapi.getApiClient(), basepath));
             cgdapi.transactionCancellationStatus(body, xSWIFTSignature, uetr);
-
-
 
             String url = "\nURL: https://sandbox.swift.com/swift-apitracker/v4/payments/" + uetr + "/cancellation/status\n";
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -267,8 +280,10 @@ public class DemoApp {
 
         } catch (ApiException ex) {
             System.out.println("\nERROR - " + ex.getMessage());
+            ex.printStackTrace();
             System.out.println(ex.getResponseBody());
         } catch (Exception ex) {
+        	System.out.println("ERROR - " + ex.getMessage());
             ex.printStackTrace();
         }
     }

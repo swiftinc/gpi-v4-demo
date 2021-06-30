@@ -13,6 +13,7 @@ public final class Constants {
     public static final String GATEWAY_TRUST_ALIAS = "trust_alias";
     public static final String GPI_CONNECTOR_TRUST_ALIAS = "trust_alias";
     public static final String CERT_PASSWORD = "cert_password";
+    public static final String MGW_SERVICE = "mgw_service";
     
     public static final String SNL_HOSTNAME = "hostname";
     public static final String SNL_PORT = "port";
@@ -43,11 +44,19 @@ public final class Constants {
     public static final String YAML_CONFIGURATION_API_GATEWAY = "api_gateway";
     public static final String YAML_CONFIGURATION_AUTHORIZATION_SERVICE = "authorization_service";
     public static final String YAML_CONFIGURATION_GPI_CONNECTOR = "gpi_connector";
+    public static final String YAML_CONFIGURATION_MGW = "microgateway";
     public static final String YAML_CONFIGURATION_SERVICES = "services";
     public static final String YAML_CONFIGURATION_SECURITY_FOOTPRINT = "security_footprints";
     public static final String YAML_CONFIGURATION_COMMON = "common";
     public static final String YAML_CONFIGURATION_BASIC = "basic";
     public static final String YAML_CONFIGURATION_SOFTWARE_CERTIFICATE = "software_certificate";
+    
+    public static final String TRACKER_SERVICE_V4 = "tracker_service_v4";
+    
+    public static final String MGW_JWS_AUTH = "mgwjws";
+    public static final String MGW_APPLICATION_NAME = "application_name";
+    public static final String MGW_PROFILE_ID = "profile_id";
+    public static final String MGW_SHARED_SECRET = "shared_secret";
     
     public static final String YAML_CUSTOM_FRAMEWORK = "custom_framework";
     

@@ -20,13 +20,17 @@ public class ConnectionInfo {
     private String scope;
     private String audience;
     private String caCert;
-    private List<SNLConnectionInfo> snlConnectionInfo;
-    private List<LAUInfo> lauInfo;
+    private String microgatewayHost;
+    private String mgwService;
+    private String trustAliasMgw;
+    
     private String username;
     private String password;
-    private String providerService;
-    private String certSelector;
-    private int hsmSlot;
+    
+    private List<ProxyParameters> proxyList;
+    private List<SNLConnectionInfo> snlConnectionInfo;    
+    private List<MGWConnectionInfo> mgwConnectionInfo;
+    private List<LAUInfo> lauInfo;
 
     public String getCertAlias() {
         return certAlias;
@@ -132,7 +136,31 @@ public class ConnectionInfo {
         this.caCert = caCert;
     }
 
-    public List<SNLConnectionInfo> getSnlConnectionInfo() {
+    public String getMicrogatewayHost() {
+		return microgatewayHost;
+	}
+
+	public void setMicrogatewayHost(String microgatewayHost) {
+		this.microgatewayHost = microgatewayHost;
+	}
+
+	public String getMgwService() {
+		return mgwService;
+	}
+
+	public void setMgwService(String mgwService) {
+		this.mgwService = mgwService;
+	}
+
+	public String getTrustAliasMgw() {
+		return trustAliasMgw;
+	}
+
+	public void setTrustAliasMgw(String trustAliasMgw) {
+		this.trustAliasMgw = trustAliasMgw;
+	}
+
+	public List<SNLConnectionInfo> getSnlConnectionInfo() {
         return snlConnectionInfo;
     }
 
@@ -148,7 +176,23 @@ public class ConnectionInfo {
         this.lauInfo = lauInfo;
     }
 
-    public String getUsername() {
+    public List<MGWConnectionInfo> getMgwConnectionInfo() {
+		return mgwConnectionInfo;
+	}
+
+	public void setMgwConnectionInfo(List<MGWConnectionInfo> mgwConnectionInfo) {
+		this.mgwConnectionInfo = mgwConnectionInfo;
+	}
+
+	public List<ProxyParameters> getProxyList() {
+		return proxyList;
+	}
+
+	public void setProxyList(List<ProxyParameters> proxyList) {
+		this.proxyList = proxyList;
+	}
+
+	public String getUsername() {
         return username;
     }
 
@@ -162,29 +206,5 @@ public class ConnectionInfo {
 
     public void setPassword(String password) {
         this.password = password;
-    }
-
-    public String getProviderService() {
-        return providerService;
-    }
-
-    public void setProviderService(String providerService) {
-        this.providerService = providerService;
-    }
-
-    public String getCertSelector() {
-        return certSelector;
-    }
-
-    public void setCertSelector(String certSelector) {
-        this.certSelector = certSelector;
-    }
-
-    public int getHsmSlot() {
-        return hsmSlot;
-    }
-
-    public void setHsmSlot(int hsmSlot) {
-        this.hsmSlot = hsmSlot;
     }
 }
