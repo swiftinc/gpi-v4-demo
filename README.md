@@ -38,10 +38,12 @@ $ mvn clean install
 ```
 $ java -Dlog4j.configuration=file:config/log4j.properties -jar target/gpi-v4-demo-1.0.0-SNAPSHOT-jar-with-dependencies.jar config/config-swift-connect.yaml
 
-To use forward proxies,
-
+```
+To use forward proxies:
+```
 $ java -Dlog4j.configuration=file:config/log4j.properties -jar target/gpi-v4-demo-1.0.0-SNAPSHOT-jar-with-dependencies.jar config/config-swift-connect-fp.yaml
 
 ```
 ## Authors
 alex.salinas@swift.com
+vijay.mukundhan@swift.com
