@@ -2,7 +2,7 @@
 
 Make calls to SWIFT APIs is easy using SWIFT SDK. All you need to do is add the SWIFT SDKs as dependency when building your Java application through Maven or Gradle.
 
-We built this demo Java application with Maven to show you how we are using it to make calls to SWIFT gpi APIs in the [API Sandbox](https://developer.swift.com/reference#sandbox-overview).
+We built this demo Java application with Maven to show you how we are using it to make calls to SWIFT gpi APIs in the [API Sandbox](https://developer.swift.com/reference#gsg).
 
 
 ## Getting Started ##
