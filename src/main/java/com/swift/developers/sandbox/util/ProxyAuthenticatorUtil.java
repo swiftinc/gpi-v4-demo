@@ -30,6 +30,7 @@ public class ProxyAuthenticatorUtil {
                             String[] proxyAddress = proxy.address().toString().split(":");
                             if ((proxyAddress != null) && proxyAddress[0].substring(1).equals(parameter.getHost())
                                     && proxyAddress[1].equals(parameter.getPort())) {
+                            	LOG.info("Proxy Authentication");
                                 String credential = Credentials.basic(parameter.getUser(), parameter.getPassword());
                                 builder.addHeader("Proxy-Authorization", credential);                                
                             }

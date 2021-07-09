@@ -89,8 +89,10 @@ public class SandboxApiSession {
 			/* Setting HTTP Client. */
 			tmpmethod = client.getClass().getMethod("getHttpClient");			
 			OkHttpClient httpClient = (OkHttpClient) tmpmethod.invoke(client);
+			httpClient.setRetryOnConnectionFailure(true);
 			httpClient.setConnectionSpecs(
-					Collections.singletonList(new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS).allEnabledCipherSuites().build()));
+					Collections.singletonList(
+							new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS).allEnabledCipherSuites().build()));
 			
 			if ((proxyParameters != null) && (proxyParameters.length != 0)) {
 				httpClient.setProxySelector(new HttpProxySelector());

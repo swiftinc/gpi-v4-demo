@@ -236,6 +236,7 @@ public class SessionImpl {
         client.setPassword(connInfo.getClientSecret());
 
         OkHttpClient httpClient = client.getHttpClient();
+        httpClient.setRetryOnConnectionFailure(true);
 
         if ((proxyParameters != null) && (proxyParameters.length != 0)) {
             httpClient.setProxySelector(new HttpProxySelector());

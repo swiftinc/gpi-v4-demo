@@ -54,13 +54,13 @@ configuration:
       trust_alias: "<TRUST_CERT_MGW_ALIAS>"
     forward_proxies:
           # Forward proxy hostname
-        - hostname: "<PROXY_HOST>"
+        - hostname: "hostname"
           # Forward proxy port
-          port: "<PROXY_PORT>"
+          port: "12345"
           # Forward proxy user used to connect
-          username: "<USER_NAME>"
+          username: "user"
           # Forward proxy password
-          password: "<PASSWORD>"
+          password: "passwd"
   services:
     # absPath of gpi Tracker API service version 2. Replace it with /swift-apitracker-pilot/v2”  for Test and Training environment.
     tracker_service_v2: "/swift-apitracker/v2"
