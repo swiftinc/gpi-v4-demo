@@ -11,7 +11,7 @@
 
 	<groupId>com.swift.developers.sandbox</groupId>
 	<artifactId>gpi-v4-demo</artifactId>
-	<version>1.0.2</version>
+	<version>1.0.3</version>
 	<packaging>jar</packaging>
 
 	<properties>
@@ -19,6 +19,7 @@
 	</properties>
 
 	<build>
+		<finalName>${project.artifactId}</finalName>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
