@@ -36,14 +36,22 @@ $ mvn clean install
 ### Run ###
 
 ```
-$ java -Dlog4j.configuration=file:config/log4j.properties -jar target/gpi-v4-demo-1.0.2-jar-with-dependencies.jar config/config-swift-connect.yaml
+$ java -Dlog4j.configuration=file:config/log4j.properties -jar target/gpi-v4-demo-jar-with-dependencies.jar config/config-swift-connect.yaml
 
 ```
 To use forward proxies:
 ```
-$ java -Dlog4j.configuration=file:config/log4j.properties -jar target/gpi-v4-demo-1.0.2-jar-with-dependencies.jar config/config-swift-connect-fp.yaml
+$ java -Dlog4j.configuration=file:config/log4j.properties -jar target/gpi-v4-demo-jar-with-dependencies.jar config/config-swift-connect-fp.yaml
 
 ```
+
+## Keystore
+The keystore (conf/keystore.jks) has these several entried that may need renewing when the Sandbox certificate is renewed:
+- globalsign_root_ca_r3, 18 Oct 2022, trustedCertEntry, Sandbox server root ca
+- globalsign_rsa_ov_ssl_ca_2018, 18 Oct 2022, trustedCertEntry, Sandbox server sub ca
+- sandbox_pub, 18 Oct 2022, trustedCertEntry, Sandbox server cert. Potentially not needed given its roots are present (see above)
+- selfsigned, 18 Jun 2020, PrivateKeyEntry, Demo client key
+
 ## Authors
 alex.salinas@swift.com
 vijay.mukundhan@swift.com
