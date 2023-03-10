@@ -8,7 +8,7 @@ We built this demo Java application with Maven to show you how we are using it t
 ## Getting Started ##
 
 ### Prerequisites ###
-* Java 1.7 and above
+* Java 11 and below
 * maven 3.5.* and above
 
 ### Install SWIFT SDK ###
