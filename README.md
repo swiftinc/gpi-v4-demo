@@ -54,4 +54,3 @@ The keystore (conf/keystore.jks) has these several entried that may need renewin
 
 ## Authors
 alex.salinas@swift.com
-vijay.mukundhan@swift.com
